@@ -1,22 +1,25 @@
 include <Z_library.scad>
-//include <../Openscad/Utilities/X_utils.scad>
+include <X_utils.scad>
 
-/* Spool support, filament guide and extruder plate support for 3D printer built in aluminium profiles. 
+/* Spool support, filament guide and extruder plate support for 3D printers built in aluminium profiles. Option with integrated simple filament detector (switch).
 
 INSTALLATION -------------------------------
   The spool support is adapted for spools with 50mm diameter hole. The default spool maximum width is 80mm, which is ok for 200 and 170mm diameter standard spools. This can be modified, though heavy spools may need stronger materials than PLA
-    While it was designed to be installed on aluminium profile, you have an option for installation on flat panels.
+    While it was designed to be installed on aluminium profile, you have also an option for installation on flat panels.
   
-  The bowden extruder installation is designed for side spool installation and extruder facing you. This is the most practical setup for operation and maintenance, as it was done for the TronXY X5S which large size don't allow easy access to the back of the machine. This setup also allow to slightly shorten the Bowden tube, which is always a positive.
+  The bowden extruder installation is designed for side spool installation and extruder facing you. This is the most practical setup for operation and maintenance, as I tested on the TronXY X5S which large size don't allow easy access to the back of the machine. This setup also allow to slightly shorten the Bowden tube, which is always a positive.
 
  By default, it is adapted for 2040 beams, bolted in the internal slot, you can extend the support arm length  (default 55 mm) if you have to install it on 2020 profile. 
  
 PRINTING recommendations -------------------
- Printed in PLA with 5 top/bottom layers, 5 walls and 30% infill
+ Spool support is printed in PLA with 5 top/bottom layers, 5 walls and 30% infill
+ Extruder support is exposed to the stepper heat and shall be printed in a more heat resistant material, PETG or ABS.
+ It is recommended to print the version with filament detector, as you may install a switch later if not interested yet. In that case, you do not need to print the filament guide, the filament being already guided.
  Depending your installation you may want to mirror parts (in your slicer). 
- You have two different shapes for the spool support, one for aluminium profile and the other for installation on a panel
+ You have two different shapes for the spool support, one for aluminium profile and the other for installation on a panel.
  
- You Shall select the part to display by modifying the part variable, either in the editor or with customizer.  [1:Spool support, 2:Filament guide, 3:Extruder support, 4:All]
+ You Shall select the part to display by modifying the 'part' variable (line 65), either in the editor or with customizer.  
+   [0:Ensemble (for view only), 1:Spool support, 2:Filament guide, 3:extruder support plate, 4:extruder support with filament detector, 5:detector support, 6:All, 9:Belt PTFE separator support]
  
 CUSTOMIZER -------------------------------
  It may help to use OpenSCAD customizer
@@ -29,7 +32,7 @@ CUSTOMIZER -------------------------------
  Please note that there are bugs in customizer and some options may not work, in this case you shall do direct modifications in the editor.
   
 AUTHOR and Licenses ---------------------  
-(c) Pierre ROUZEAU Jan 2018
+(c) Pierre ROUZEAU Jan-Feb 2018
 files in : https://github.com/PRouzeau/Spool_support_aluminium_frame
 * Part licence : CERN OHL V1.2
 * Program license GPL2 & 3
@@ -39,19 +42,33 @@ DESIGN NOTES -------------------------
   The flatness of the support is to avoid the spool balancing driven by retracts that you get with simple cylindrical support
   It is slightly reclined toward the beam in order to have the spool staying always held against support flange
   Spool is slightly angled toward the support column to reduce the filament angling
-  This overall design makes the friction of the spool relatively steady to avoid filament tangling without needing any braking system. 
+  This overall design makes the friction of the spool relatively steady to avoid filament tangling without needing any braking system.
   This is my third spool support design, the simplest and most efficient one, starting from ball bearing based system with brake to this much simpler stuff.
 */
 /* [Hidden] ---------------------------- */
 xpart=0; // neutralise acc display
-file_beam_sec = "../Openscad/Utilities/Vslot_beam_cut.dxf";
+file_beam_sec = "Vslot_beam_cut.dxf";
+
+/* [Camera view] ------------------------ */
+//Deactivate if you want to left view as it is when previewing
+Force_view_position = true;
+Camera_distance = 1200;
+//Camera rotation vector
+camVpr = [350,10,180];
+//Camera translation vector
+camVpt = [-70,190,60];
+$vpd=Force_view_position?Camera_distance:undef;  // camera distance: work only if set outside a module
+$vpr=Force_view_position?camVpr:undef; // camera rotation
+$vpt=Force_view_position?camVpt:undef; //camera translation  
 
 /* [General] --------------------------- */
-part=1; // [1:Spool support, 2:Filament guide, 3:Extruder support, 4:All, 5:Belt PTFE separator support]
+part=0; // [0: ensemble, 1:Spool support, 2:Filament guide, 3:extruder support plate, 4:extruder support with filament detector, 5:detector support, 6:All, 9:Belt PTFE separator support]
 
 spool_support_end = true;
+
 spool_support_length = 80;
-//arm support length, default 55 for 2040 profile, shall increase to 75 for 2020 profile 
+
+//arm support length, default 55 for 2040 profile, shall increase to 75 for 2020 profile, shall be 0 for flat panel mount 
 arm_support_length = 55;
 echo ("Arm support length", arm_support_length);
 
@@ -60,27 +77,26 @@ beam_type = 1; // [1:arm extension from profile, 3:on panel]
 angled = true;
 V_slot = 0; // [0: profile with V-slot, 1:T-slot, 2: Flat panel]
 
-// include <../../Openscad/Utilities/Vslot.scad>
-
-if (part==1)
-  spool_sup();
-else if (part==2)
-  filament_guide();
-else if (part==3)
-  extruder_sup();
-else if (part==4)
-  plate();
-else if (part==5) //PTFE plate support:  off-topic, but shall be somewhere
+if (part==1)      spool_sup();
+else if (part==2) filament_guide();
+else if (part==3) extruder_sup();
+else if (part==4) extruder_sup(true);
+else if (part==5) sw_sup();
+else if (part==6) plate();
+else if (part==9) //PTFE plate support to prevent belt contact: off-topic, but shall be somewhere
   duplx(32) PTFE_sup();
+else 
+  ensemble();
 
-//t(-10) gray() vbeam (30); // test beam
-
+//all parts, version with filament detector - if all parts are printed ensemble, you shall use PETG or ABS.
 module plate () {
   spool_sup();
-  t(104,-78) rotz (90) filament_guide();
-  t(80,-112) rotz(70) extruder_sup();
+  //t(104,-78) rotz (90) filament_guide();
+  t(136,-115) rotz(70) extruder_sup(true);
+  t(125,0) sw_sup();
 }  
 
+//-- Spool support ---------------------------
 module spool_sup () {
   sup_angle = (angled)?-3:0;
 diff() {
@@ -153,6 +169,8 @@ diff() {
 }
 }
 
+//-- Filament guide ----------------------------
+// Not needed if using the filament detector
 module filament_guide () {
   guide_width = 20;
   slot_width = (V_slot==0)?9.5:6.5;
@@ -186,49 +204,178 @@ module filament_guide () {
   }  
 }
 
-module extruder_sup () {
+module extruder_sup (fildetect = false) {
   diff() {
-    hull() {
-      cubex (75,40,4, 2,22,2);
-      cubex (55,1,4, 2,74,2);
-    }
+    u() {
+      hull() {
+        cubex (70,40,4, 7,22,2);
+        if (fildetect) 
+          cubex (28,65,4, 0,98,2);
+        else   
+          cubex (56,24,4, 0,64,2);
+      }
+      if (fildetect) 
+        t(46,46) rotz(30) 
+          t(-6,22,11.5+4) {
+            hull() rotz(-4){
+              cubez (8,42,2, 0,38.5,-13);
+              r(-3) cubez (8,42,6, 0,38.5,-3);
+              // switch base      
+              t(19,35+5,-12)
+                cubez(20,20,5);      
+            }
+          }
+    }  
     //::::::::::::::::
+    //filament hole 
+    t(46,46) rotz(30) 
+      t(-6,22,11.5+4) 
+        r(-3,0,-4) {
+          cone3y(2,4,57.8,2,10);  
+          cubez (10,26,12, 0,38,-2.5);
+        // switch base      
+          t(19,35+5,-7)
+            cubez(29,45,10);   
+       //plate screws
+            duply(12) 
+              cylz(-2.3,33, 24,35-1,-15);   
+        }
+    // profile attach holes
     duplx (28) cylz (-4.3,33, 40,10);
-    cylz (-4.3,33,10,65);
+    duply (58) cylz (-4.3,33,10,66);
+    //motor holes
     t(46,46) rotz(30) {
       dmirrorx() dmirrory() cylz (-3.3,33, 15.5,15.5);
       cylz (-22.5,33, 0,0,0, 48);
     }  
-    rotz(28) cubez (150,150,20, -45,5,-10);
+    // bias cut
+    rotz(28) cubez (150,250,20, -45,5,-10);
   }
-//Stepper and frame mockup
- *u() {
-    t(46,46) rotz(30) nema17(); 
-    gray() {
-      t (0,10,-10) r(0,90) vbeam (100);
-      t (10,20,-10) r(-90,0) vbeam (100);
-    }
+}
+
+//-- Global view ------------------------------
+module ensemble () {
+  // extruder support
+  extruder_sup(true);
+  //Stepper and frame mockup
+  t(46,46) rotz(30) {
+    nema17(); 
+    //filament contact gear
+    cylz (11,10, 0,0,10);
+    //bearing
+    silver() 
+      cylz(12.5,5, -12.5,0,11.5);
+    gray() 
+      cylz(3,7, -12.5,0,11.5);
+    //extruder approximation
+    black() {
+      cubez(44,14,18, 0,-15,4.1);
+      cubez(46,15,18, 1,15,4.1);
+      hull() {
+        cylz(8,18, -12.5,0,4.1);
+        cylz(14,18, -15,11,4.1);
+      }
+      hull() 
+        duplx(20)
+          cylz(6,18, 8,21,4.1);
+    }  
+    //bolts to motor
+    gray() dmirrorx() dmirrory()
+      cylz (3.3,25, 15.5,15.5);
+    //filament 
+    t(-6,22,11.5+4) {
+        r(-3,0,-4) {
+          green() cyly(2,133);
+          silver() {
+            //switch screws
+            duply(10) 
+              cylz(2,13, 13.8,35,-8);
+            //plate screws
+            duply(12) 
+              cylz(3,15, 24,35-1,-15);
+            //switch blade
+            rotz(-10) 
+              cubez(1,22,5, -2,35+4,-2); 
+            cylz (4,5,2,29.5,-2); 
+          } 
+          //switch
+          black()
+            cubez(10,20,6,  13.8-2,35+5,-2.5); 
+          //switch support
+          red() t(19,35+5,-7) sw_sup();
+        }  
+        // filament and bowden
+        green() cyly(2,-50);  
+        white() cyly(4,-50, 0,-45);  
+      }
+  }  
+  //Spool support
+  green() 
+    t(-2,320,-30-arm_support_length)
+      rotz(10) r(0,90) r(90,90) 
+        spool_sup(); 
+  //aluminium profiles 
+  gray() {
+    t(0,10,-10)  r(0,90)   vbeam (100);
+    t(10,20,-20) r(-90,90) vbeam (400,"2040 V-beam: Pylon", true, "SECTION2");
+  }
+  //Spool 
+  t(-16,320,-arm_support_length-30)
+    r(0,-87, 3) 
+      spool();
+}
+
+//-- Support for filament detection switch ------
+module sw_sup (){
+  diff() {
+    cubez(25,20,5);
+    dmirrory()  {   
+      cylz (-1.5,22, -5,5);
+      hull() 
+        duplx(-6)
+        cylz(-3,22, 8,6);
+    }  
   }  
 }
 
-// Support for PTFE plate (for belt separation)
+//-- Support for PTFE plate (for belt separation)
 module PTFE_sup () {
   diff() {
     u() {
-      cubey (24,32,4, 0,0,2);
+      cubey(24,32,4, 0,0,2);
       hull() {
-        cubey (24,6,12, 0,0,6); 
-        cubey (24,10,2, 0,0,1); 
+        cubey(24,6,12, 0,0,6); 
+        cubey(24,10,2, 0,0,1); 
       }  
-    } 
-    dmirrorx() cyly (-2.5,22, 8,0,6);  
-    hull() duply (4)cylz (-4.2,22, 0,20);
+    } //:::::::::::::::::::::::
+    dmirrorx() cyly(-2.5,22, 8,0,6);  
+    hull() 
+      duply(4)
+        cylz(-4.2,22, 0,20);
   }
 }
 
-
-module vbeam (lg, msg="") {
+//-- Aluminium extrusions ---------------------
+module vbeam (lg, msg="",center=false, profile = "SECTION") {
   linear_extrude(height=lg, center=false)
-    import (file=file_beam_sec, layer="SECTION");
+    import (file=file_beam_sec, layer=profile);
   echo (str (msg," length:",lg,"mm"));
+}
+
+//== Accessories ==========================
+module spool (clr="green", spool_diam=200, spool_width=70) {
+  diff() { 
+    u() {
+      black() { 
+        cylz(spool_diam, spool_width/20,
+            0,0,0,50);
+        cylz(spool_diam, spool_width/20,
+            0,0,spool_width*0.95,50);
+      }  
+      color(clr)
+        cylz(spool_diam*0.92, spool_width*0.86,
+            0,0,spool_width*0.07,100);
+    } //::::::::::::::::::::::::::   
+    cylz(-52,222); // spool hole
+  }
 }

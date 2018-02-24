@@ -15,7 +15,7 @@ You can modify parameters in OpenScad, however for spools over 1kg you may need 
 Miscellaneous outputs are located in the STL directory
 
 PRINTING recommendations -------------------
- spool support and filament guide printed in PLA with 5 top/bottom layers, 5 walls and 30% infill
+ spool support and filament guide printed in PLA with 4 top/bottom layers, 6 walls and 20% infill
  Depending your setup you may want to mirror parts (in your slicer). 
  You have two different shapes for the spool support, one for aluminium profile and the other for installation on a panel
  
