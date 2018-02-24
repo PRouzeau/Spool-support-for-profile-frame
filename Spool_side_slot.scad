@@ -62,7 +62,7 @@ $vpr=Force_view_position?camVpr:undef; // camera rotation
 $vpt=Force_view_position?camVpt:undef; //camera translation  
 
 /* [General] --------------------------- */
-part=0; // [0: ensemble, 1:Spool support, 2:Filament guide, 3:extruder support plate, 4:extruder support with filament detector, 5:detector support, 6:All, 9:Belt PTFE separator support]
+part=0; // [0: ensemble, 1:Spool support, 2:Filament guide, 3:extruder support plate, 4:extruder support with filament detector, 5:detector support, 6:All, 9:Belt PTFE separator support, 99:ensemble without sensor]
 
 spool_support_end = true;
 
@@ -85,6 +85,8 @@ else if (part==5) sw_sup();
 else if (part==6) plate();
 else if (part==9) //PTFE plate support to prevent belt contact: off-topic, but shall be somewhere
   duplx(32) PTFE_sup();
+else if (part==99)
+  ensemble(false);
 else 
   ensemble();
 
@@ -169,7 +171,7 @@ diff() {
 }
 }
 
-//-- Filament guide ----------------------------
+//-- Filament guide ------------------------
 // Not needed if using the filament detector
 module filament_guide () {
   guide_width = 20;
@@ -208,11 +210,11 @@ module extruder_sup (fildetect = false) {
   diff() {
     u() {
       hull() {
-        cubex (70,40,4, 7,22,2);
+        cubex (70,36,4, 7,20,2);
         if (fildetect) 
           cubex (28,65,4, 0,98,2);
         else   
-          cubex (56,24,4, 0,64,2);
+          cubex (50,24,4, 0,72,2);
       }
       if (fildetect) 
         t(46,46) rotz(30) 
@@ -241,73 +243,81 @@ module extruder_sup (fildetect = false) {
               cylz(-2.3,33, 24,35-1,-15);   
         }
     // profile attach holes
-    duplx (28) cylz (-4.3,33, 40,10);
-    duply (58) cylz (-4.3,33,10,66);
+    duplx (25) cylz (-4.3,33, 45,10);
+    duply (48) cylz (-4.3,33, 10,76);
     //motor holes
     t(46,46) rotz(30) {
       dmirrorx() dmirrory() cylz (-3.3,33, 15.5,15.5);
       cylz (-22.5,33, 0,0,0, 48);
     }  
     // bias cut
-    rotz(28) cubez (150,250,20, -45,5,-10);
+    rotz(28) cubez (150,250,20, -39,5,-10);
   }
 }
 
 //-- Global view ------------------------------
-module ensemble () {
+module ensemble (sensor=true) {
   // extruder support
-  extruder_sup(true);
+  extruder_sup(sensor);
   //Stepper and frame mockup
   t(46,46) rotz(30) {
     nema17(); 
     //filament contact gear
     cylz (11,10, 0,0,10);
     //bearing
-    silver() 
+    silver() {
       cylz(12.5,5, -12.5,0,11.5);
+      cyly(-8,20, 14,0,14);
+    }  
     gray() 
       cylz(3,7, -12.5,0,11.5);
     //extruder approximation
     black() {
-      cubez(44,14,18, 0,-15,4.1);
-      cubez(46,15,18, 1,15,4.1);
+      cubez(44,14,18, 0,-15,4.01);
+      cubez(46,15,18, 1,15,4.01);
       hull() {
-        cylz(8,18, -12.5,0,4.1);
-        cylz(14,18, -15,11,4.1);
+        cylz(8,8, -12.5,0,4.01);
+        cylz(14,8, -15,11,4.01);
       }
       hull() 
-        duplx(20)
-          cylz(6,18, 8,21,4.1);
+        duplx(18)
+          cylz(3,18, 12,25,4.01);
+      hull() {
+        duplx(13)
+          cylz(3,18, 12,25,4.01);
+        cubez(20,5,18, 1,15,4.01);
+      }  
     }  
     //bolts to motor
     gray() dmirrorx() dmirrory()
       cylz (3.3,25, 15.5,15.5);
     //filament 
-    t(-6,22,11.5+4) {
-        r(-3,0,-4) {
-          green() cyly(2,133);
-          silver() {
-            //switch screws
-            duply(10) 
-              cylz(2,13, 13.8,35,-8);
-            //plate screws
-            duply(12) 
-              cylz(3,15, 24,35-1,-15);
-            //switch blade
-            rotz(-10) 
-              cubez(1,22,5, -2,35+4,-2); 
-            cylz (4,5,2,29.5,-2); 
-          } 
-          //switch
-          black()
-            cubez(10,20,6,  13.8-2,35+5,-2.5); 
-          //switch support
-          red() t(19,35+5,-7) sw_sup();
-        }  
-        // filament and bowden
-        green() cyly(2,-50);  
-        white() cyly(4,-50, 0,-45);  
-      }
+    if(sensor)
+      t(-6,22,11.5+4) {
+          r(-3,0,-4) {
+            green() cyly(2,133);
+            silver() {
+              //switch screws
+              duply(10) 
+                cylz(2,13, 13.8,35,-8);
+              //plate screws
+              duply(12) 
+                cylz(3,15, 24,35-1,-15);
+              //switch blade
+              rotz(-10) 
+                cubez(1,22,5, -2,35+4,-2); 
+              cylz (4,5,2,29.5,-2); 
+            } 
+            //switch
+            black()
+              cubez(10,20,6,  13.8-2,35+5,-2.5); 
+            //switch support
+            red() t(19,35+5,-7) sw_sup();
+          }  
+          // filament and bowden
+          green() cyly(2,-50);  
+          white() cyly(4,-50, 0,-45);  
+        }
   }  
   //Spool support
   green() 
