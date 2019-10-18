@@ -10,3 +10,8 @@ Spool support have a flattened shape and is reclined to avoid spool balancing an
 <img src="Images/Spool_support.jpg" alt="Spool support close-up" width="420">
 
 >>>>>>> origin/master
+
+To install OpenSCAD applications and models, see http://rouzeau.net/Print3D/OpenSCADApplications
+
+Pour installer les applications et modèles OpenSCAD, voir  http://rouzeau.net/OpenSCAD/Applications
+
